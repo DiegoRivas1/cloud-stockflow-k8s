@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-banco
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-banco
+  template:
+    metadata:
+      labels:
+        app: backend-banco
+    spec:
+      containers:
+      - name: backend
+        image: mi-banco-backend:v1
+        imagePullPolicy: Never
+        env:
+        - name: DB_HOST
+          value: "postgres-service"
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            cpu: "50m"
+          limits:
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: backend-banco
+  ports:
+  - port: 3000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend-banco
+  minReplicas: 2
+  maxReplicas: 30
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
